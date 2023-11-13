@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Count Pixels</title>
+</head>
+<body>
+    <input type="file" id="imageInput" accept="image/*">
+    <br>
+    <canvas id="imageCanvas" style="display: none;"></canvas>
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('imageInput').addEventListener('change', handleImage);
+
+      function classifyColor(rgb, targetColor, threshold) {
+          const [targetRed, targetGreen, targetBlue] = targetColor;
+          const [red, green, blue] = rgb;
+
+          const distance = Math.sqrt(
+              Math.pow(targetRed - red, 2) +
+              Math.pow(targetGreen - green, 2) +
+              Math.pow(targetBlue - blue, 2)
+          );
+
+          if (distance <= threshold) {
+              if (red > green && red > blue) {
+                  return 'RED';
+              } else if (blue > red && blue > green) {
+                  return 'BLUE';
+              } else if (red === green && red === blue) {
+                  return 'GRAY';
+              }
+          }
+
+          return 'OTHER';
+      }
+
+        function handleImage(e) {
+            const input = e.target;
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                
+                reader.onload = function (e) {
+                    const image = new Image();
+                    image.onload = function () {
+
+                        const redCount = countPixels(image, 'RED');
+                        const blueCount = countPixels(image, 'BLUE');
+                        const grayCount = countPixels(image, 'GRAY');
+
+                        const percentage = (redCount + blueCount) / (redCount + blueCount + grayCount);
+                        console.log(`${percentage*100}%`);
+                    };
+                    image.src = e.target.result;
+                };
+                
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function countPixels(image, type) {
+            const canvas = document.getElementById('imageCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = image.width;
+            canvas.height = image.height;
+            ctx.drawImage(image, 0, 0, image.width, image.height);
+
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+
+            let count = 0;
+
+            for (let i = 0; i < data.length; i += 4) {
+                const red = data[i];
+                const green = data[i + 1];
+                const blue = data[i + 2];
+
+                let colorType = 'OTHER';
+                if(type === 'RED') {
+                  colorType = classifyColor([red, green, blue], [233, 58, 47], 60);
+                } else if(type === 'BLUE') {
+                  colorType = classifyColor([red, green, blue], [69, 140, 247], 60);
+                } else if(type === 'GRAY') {
+                  colorType = classifyColor([red, green, blue], [203, 204, 203], 15);
+                }
+
+                if (colorType === type) {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+    </script>
+</body>
+</html>
